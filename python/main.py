@@ -21,7 +21,10 @@ def get_db():
         #　yield
     conn = sqlite3.connect("db/mercari.sqlite3")
     conn.row_factory = sqlite3.Row  # Return rows as dictionaries　# 結果を辞書形式で扱えるようにする
-    return conn
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 # STEP 5-1: set up the database connection
@@ -79,6 +82,20 @@ def save_image(image: UploadFile) -> str:
         file.write(image_data)
     return file_name #画像のハッシュ名を返す
 
+# categoryを受け取りcategory_idを取得する関数
+def get_or_create_category_id(db: sqlite3.Connection, category_name: str)-> int:
+    cursor = db.cursor()
+    cursor.execute("SELECT id FROM categories WHERE name = ?", (category_name,))
+    row = cursor.fetchone()
+    
+    if row:
+        return row["id"]  # 既存の category_id を返す
+
+    # カテゴリーが存在しない場合、新規作成
+    cursor.execute("INSERT INTO categories (name) VALUES (?)", (category_name,))
+    db.commit()
+    return cursor.lastrowid  # 新しく作成した category_id を返す
+
 
 # items.jsonのデータ読み込み
 #def load_items():
@@ -124,15 +141,25 @@ def get_items(db: sqlite3.Connection = Depends(get_db)):
 @app.post("/items", response_model=AddItemResponse)
 def add_item(
     name: str = Form(...),
-    category: str = Form(...), #カテゴリーを受け取る
+    category: str = Form(...),
     image: UploadFile = File(...), # 画像を受け取る
     db: sqlite3.Connection = Depends(get_db),
 ):
     if not name or not category:
         raise HTTPException(status_code=400, detail="name and category is required")
     
+    # category_id を取得or作成
+    category_id = get_or_create_category_id(db, category)
+    
     image_name = save_image(image) #画像を保存、ハッシュ名を取得
-    insert_item(db, Item(name=name, category=category, image_name=image_name))
+
+    # `items` テーブルに商品を追加
+    cursor = db.cursor()
+    cursor.execute(
+        "INSERT INTO items (name, category_id, image_name) VALUES (?, ?, ?)",
+        (name, category_id, image_name)
+    )
+    db.commit()
 
     return AddItemResponse(**{"message": f"item received: {name}, {category}, {image_name}"})
 
@@ -156,16 +183,6 @@ async def get_image(image_name: str):
     return FileResponse(image)
 
 
-
-def insert_item(db: sqlite3.Connection, new_item: Item):
-    # STEP 4-1: add an implementation to store an item　
-    cursor = db.cursor()
-    cursor.execute(
-        "INSERT INTO items (name, category, image_name) VALUES (?, ?, ?)",
-        (new_item.name, new_item.category, new_item.image_name)
-    )
-    db.commit()
-
 # キーワード検索をするエンドポイント
 @app.get("/search")
 def search_items(
@@ -173,9 +190,13 @@ def search_items(
     db: sqlite3.Connection = Depends(get_db)
 ):
     cursor = db.cursor()
-    cursor.execute("SELECT * FROM items WHERE name LIKE ?", ('%' + keyword + '%',))
+    cursor.execute("""
+        SELECT items.id, items.name, categories.name as category, items.image_name
+        FROM items
+        JOIN categories ON items.category_id = categories.id
+        WHERE items.name LIKE ?
+    """, ('%' + keyword + '%',))
     items = cursor.fetchall()
-    db.close()
 
     if not items:
         raise HTTPException(status_code=404,detail="No items found")
