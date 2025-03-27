@@ -1,6 +1,6 @@
 import os
 import logging
-#　import json
+# import json
 import pathlib
 import hashlib  # SHA-256　ハッシュ化用
 import sqlite3
@@ -46,7 +46,7 @@ origins = [os.environ.get("FRONT_URL", "http://localhost:3000")]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
@@ -98,20 +98,20 @@ def get_or_create_category_id(db: sqlite3.Connection, category_name: str)-> int:
 
 
 # items.jsonのデータ読み込み
-#def load_items():
-    #if items_json_path.exists():
-        #with open(items_json_path, "r", encoding="utf-8") as file:
-            #data = json.load(file)
-            #return data.get("items", [])
-    #return []
+# def load_items():
+#     if items_json_path.exists():
+#         with open(items_json_path, "r", encoding="utf-8") as file:
+#             data = json.load(file)
+#             return data.get("items", [])
+#     return []
 
-#item.jsonに商品を追加して保存する関数
+# item.jsonに商品を追加して保存する関数
 # def save_item(item: Item):
-    # items = load_items()
-    # items.append({"name": item.name, "category": item.category, "image_name": item.image_name}) #商品を追加する
+#     items = load_items()
+#     items.append({"name": item.name, "category": item.category, "image_name": item.image_name}) #商品を追加する
 
-    #with open(items_json_path, "w", encoding="utf-8") as file:
-        #json.dump({"items": items}, file, indent=2, ensure_ascii=False)  # JSONを保存
+#     with open(items_json_path, "w", encoding="utf-8") as file:
+#         json.dump({"items": items}, file, indent=2, ensure_ascii=False)  # JSONを保存
 
 
 #登録された商品データを取得
