@@ -22,10 +22,19 @@
   justify-content: left;
   font-size: calc(10px + 1vmin);
   color: white;
+  padding: 0 20px;
+}
+
+.item-list-container {
+  display: contents;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
 }
 
 .ItemList {
   background-color: #222427;
+  text-align: center;
   min-height: 8vh;
   display: flex;
   flex-direction: column;
@@ -33,6 +42,12 @@
   justify-content: left;
   font-size: calc(10px + 1vmin);
   color: white;
+}
+
+.item-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
 }
 
 .App-link {
